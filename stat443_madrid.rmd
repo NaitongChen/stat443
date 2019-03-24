@@ -1,0 +1,319 @@
+---
+title: "stat443_madrid"
+author: "chloe"
+date: "March 22, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+load data
+
+```{r}
+setwd("C:/2018W2/STAT443/project/Madrid")
+m2001<-read.table("madrid_2001.csv",header=TRUE,sep=",")
+m2001<-m2001[m2001$station=="28079036",]
+
+m2002<-read.table("madrid_2002.csv",header=TRUE,sep=",")
+m2002<-m2002[m2002$station=="28079036",]
+
+m2003<-read.table("madrid_2003.csv",header=TRUE,sep=",")
+m2003<-m2003[m2003$station=="28079036",]
+
+m2004<-read.table("madrid_2004.csv",header=TRUE,sep=",")
+m2004<-m2004[m2004$station=="28079036",]
+
+m2005<-read.table("madrid_2005.csv",header=TRUE,sep=",")
+m2005<-m2005[m2005$station=="28079036",]
+
+m2006<-read.table("madrid_2006.csv",header=TRUE,sep=",")
+m2006<-m2006[m2006$station=="28079036",]
+
+m2007<-read.table("madrid_2007.csv",header=TRUE,sep=",")
+m2007<-m2007[m2007$station=="28079036",]
+
+m2008<-read.table("madrid_2008.csv",header=TRUE,sep=",")
+m2008<-m2008[m2008$station=="28079036",]
+
+m2009<-read.table("madrid_2009.csv",header=TRUE,sep=",")
+m2009<-m2009[m2009$station=="28079036",]
+
+m2010<-read.table("madrid_2010.csv",header=TRUE,sep=",")
+m2010<-m2010[m2010$station=="28079036",]
+
+m2011<-read.table("madrid_2011.csv",header=TRUE,sep=",")
+m2011<-m2011[m2011$station=="28079036",]
+
+m2012<-read.table("madrid_2012.csv",header=TRUE,sep=",")
+m2012<-m2012[m2012$station=="28079036",]
+
+m2013<-read.table("madrid_2013.csv",header=TRUE,sep=",")
+m2013<-m2013[m2013$station=="28079036",]
+
+m2014<-read.table("madrid_2014.csv",header=TRUE,sep=",")
+m2014<-m2014[m2014$station=="28079036",]
+
+m2015<-read.table("madrid_2015.csv",header=TRUE,sep=",")
+m2015<-m2015[m2015$station=="28079036",]
+
+m2016<-read.table("madrid_2016.csv",header=TRUE,sep=",")
+m2016<-m2016[m2016$station=="28079036",]
+
+m2017<-read.table("madrid_2017.csv",header=TRUE,sep=",")
+m2017<-m2017[m2017$station=="28079036",]
+
+m2018<-read.table("madrid_2018.csv",header=TRUE,sep=",")
+m2018<-m2018[m2018$station=="28079036",]
+
+#plot(ts(m2012$PM10))
+
+yeet<-intersect(names(m2003),names(m2007))
+yeet<-intersect(yeet,names(m2014))
+yeet<-intersect(yeet,names(m2017))
+print(yeet)
+m2001<-m2001[yeet]
+m2002<-m2002[yeet]
+m2003<-m2003[yeet]
+m2004<-m2004[yeet]
+m2005<-m2005[yeet]
+m2006<-m2006[yeet]
+m2007<-m2007[yeet]
+m2008<-m2008[yeet]
+m2009<-m2009[yeet]
+m2010<-m2010[yeet]
+m2011<-m2011[yeet]
+m2012<-m2012[yeet]
+m2013<-m2013[yeet]
+m2014<-m2014[yeet]
+m2015<-m2015[yeet]
+m2016<-m2016[yeet]
+m2017<-m2017[yeet]
+m2018<-m2018[yeet]
+
+all<-rbind.data.frame(m2001,m2002,m2003,m2004,m2005,m2006,m2007,m2008,m2009,m2010,m2011,m2012,m2013,m2014,m2015,m2016,m2017)
+all<-all[order(all$date, decreasing = FALSE),]
+
+```
+the all file has columns:date""BEN""CO""EBE""NMHC""NO_2""O_3""PM10" "SO_2""TCH""TOL""station"
+check number of NAs for each column and decide whether we will put in model
+```{r}
+sum(is.na(all$BEN)) # 148176/148176
+sum(is.na(all$CO))# 482
+sum(is.na(all$EBE)) # 148176
+sum(is.na(all$NMHC)) # 148176
+sum(is.na(all$NO_2)) # 533
+sum(is.na(all$O_3)) # 70867
+sum(is.na(all$PM10)) # 846
+sum(is.na(all$SO_2)) # 473
+sum(is.na(all$TCH)) # 148176
+sum(is.na(all$TOL)) # 148176
+yeet<-yeet[c(1,3,6,8,9)] 
+all<-all[,yeet]
+
+```
+#calculate missing rate
+Max is 5% (Mar 2016)
+```{r}
+all.impute <- all
+
+all.impute$date <- as.POSIXct(all.impute$date, format = "%Y-%m-%d %H:%M:%S")
+all.impute$Date <- format(all.impute$date, "%Y-%m-%d")
+all.impute$Time <- format(all.impute$date, "%T")
+all.impute$Date <- as.POSIXct(all.impute$Date, format = "%Y-%m-%d")
+all.impute$Month <- format(all.impute$date, "%Y-%m")
+
+col.names <- names(all.impute)
+
+missing.co <- all.impute[is.na(all.impute$CO),]
+missing.co <- missing.co[, col.names[c(2,8)]]
+missing.co.count <- aggregate(missing.co, by = list(unique.values = missing.co$Month), FUN = length)
+
+missing.so2 <- all.impute[is.na(all.impute$SO_2),]
+missing.so2 <- missing.so2[, col.names[c(5,8)]]
+missing.so2.count <- aggregate(missing.so2, by = list(unique.values = missing.so2$Month), FUN = length)
+
+missing.no2 <- all.impute[is.na(all.impute$NO_2),]
+missing.no2 <- missing.no2[, col.names[c(3,8)]]
+missing.no2.count <- aggregate(missing.no2, by = list(unique.values = missing.no2$Month), FUN = length)
+
+missing.pm10 <- all.impute[is.na(all.impute$PM10),]
+missing.pm10 <- missing.pm10[, col.names[c(4,8)]]
+missing.pm10.count <- aggregate(missing.pm10, by = list(unique.values = missing.pm10$Month), FUN = length)
+
+max(missing.co.count$Month)
+max(missing.so2.count$Month)
+max(missing.no2.count$Month)
+max(missing.pm10.count$Month)
+
+40/(31*24) #mar 2016 co,so2,no2 0.05376344
+216/(31*24) #dec 2016 pm10 0.2903226
+```
+monthly average
+```{r}
+all.impute <- all
+all.impute <- na.omit(all.impute)
+
+all.impute$date <- as.POSIXct(all.impute$date, format = "%Y-%m-%d %H:%M:%S")
+all.impute$Date <- format(all.impute$date, "%Y-%m-%d")
+all.impute$Month <- format(all.impute$date, "%Y-%m")
+
+col.names <- names(all.impute)
+co <- all.impute[, col.names[c(7,2)]]
+no2 <- all.impute[, col.names[c(7,3)]]
+pm10 <- all.impute[, col.names[c(7,4)]]
+so2 <- all.impute[, col.names[c(7,5)]]
+
+co.mean <- setNames(aggregate(co$CO, by = list(unique.values = co$Month), FUN = 'mean', na.action = na.pass), c('time', 'CO'))
+no2.mean <- setNames(aggregate(no2$NO_2, by = list(unique.values = no2$Month), FUN = 'mean', na.action = na.pass), c('time', 'NO2'))
+pm10.mean <- setNames(aggregate(pm10$PM10, by = list(unique.values = pm10$Month), FUN = 'mean', na.action = na.pass), c('time', 'PM10'))
+so2.mean <- setNames(aggregate(so2$SO_2, by = list(unique.values = so2$Month), FUN = 'mean', na.action = na.pass), c('time', 'SO2'))
+
+monthly.means <- data.frame(co.mean, no2.mean, pm10.mean, so2.mean)
+monthly.means <- monthly.means[, names(monthly.means)[c(1,2,4,6,8)]]
+
+hold.month<-monthly.means[c(145:nrow(monthly.means)),]
+train.month<-monthly.means[c(1:(nrow(monthly.means)-nrow(hold.month))),]
+```
+#correlation matrix and time series plot
+```{r}
+tsSO2 <- ts(train.month$SO2, frequency = 12, start = c(2001,1))
+tsPM10 <- ts(train.month$PM10, frequency = 12, start = c(2001,1))
+tsCO <- ts(train.month$CO, frequency = 12, start = c(2001,1))
+tsNO2 <- ts(train.month$NO2, frequency = 12, start = c(2001,1))
+
+cor(monthly.means[c(2,3,4,5)])
+plot(tsSO2)
+plot(tsPM10)
+plot(tsCO)
+plot(tsNO2)
+```
+$acf and pacf plots
+```{r}
+max.lag = 12*12
+acf(tsCO)
+pacf(tsCO)
+acf(tsSO2)
+pacf(tsSO2)
+acf(tsNO2)
+pacf(tsNO2)
+acf(tsPM10)
+pacf(tsPM10)
+```
+$diff
+```{r}
+diff.tsSO2 <- ts(diff(train.month$SO2), frequency = 12, start = c(2001,1))
+diff.tsPM10 <- ts(diff(train.month$PM10), frequency = 12, start = c(2001,1))
+diff.tsCO <- ts(diff(train.month$CO), frequency = 12, start = c(2001,1))
+diff.tsNO2 <- ts(diff(train.month$NO2), frequency = 12, start = c(2001,1))
+
+plot(diff.tsSO2)
+plot(diff.tsPM10)
+plot(diff.tsCO)
+plot(diff.tsNO2)
+
+max.lag = 12*12
+acf(diff.tsCO, lag.max = max.lag)
+pacf(diff.tsCO, lag.max = max.lag)
+acf(diff.tsSO2, lag.max = max.lag)
+pacf(diff.tsSO2, lag.max = max.lag)
+acf(diff.tsNO2, lag.max = max.lag)
+pacf(diff.tsNO2, lag.max = max.lag)
+acf(diff.tsPM10, lag.max = max.lag)
+pacf(diff.tsPM10, lag.max = max.lag)
+```
+$baseline
+```{r}
+
+```
+holt winters and stl
+```{r}
+hw.co <- HoltWinters(tsCO,seasonal='additive')
+print(sqrt(hw.co$SSE/(nrow(train.month)-12))) # in sample rmse = 0.09557146
+acf(ts(rowSums(hw.co$fitted[,c(1,2,3)]), start = c(2001,1)))
+acf(ts(hw.co$fitted[,1], frequency = 12, start = c(2001,1)))
+
+plot(ts(rowSums(hw.co$fitted[,c(1,2,3)]), start = c(2001,1)))
+plot(ts(hw.co$fitted[,1], frequency = 12, start = c(2001,1)))
+
+hw.co.mult <- HoltWinters(tsCO,seasonal='multiplicative')
+print(sqrt(hw.co.mult$SSE/(nrow(train.month)-12))) # in sample rmse = 0.08679997
+acf(ts(rowSums(hw.co.mult$fitted[,c(1,2,3)]), start = c(2001,1)), lag.max = 144)
+acf(ts(hw.co.mult$fitted[,1], frequency = 12, start = c(2001,1)))
+
+stl.co <- stl(tsCO, s.window = 'periodic')
+acf(stl.co$time.series[,3], lag.max = max.lag)
+stl.co$weights
+
+```
+arima
+```{r}
+fitar1s=arima(tsCO,order=c(2,0,0),seasonal=list(order=c(0,1,0),period=12), method='CSS')
+acf(fitar1s$residuals)
+pacf(fitar1s$residuals)
+sqrt(fitar1s$sigma2) #0.1031688
+
+arima.season.x=arima(tsCO,order=c(2,0,0),seasonal=list(order=c(0,1,0),period=12), xreg=train.month[,c(3,5)], method='CSS')
+acf(arima.season.x$residuals)
+pacf(arima.season.x$residuals)
+sqrt(arima.season.x$sigma2) #0.0758855
+
+ar3=arima(tsCO,order=c(3,0,0),method = 'CSS')
+acf(ar3$residuals)
+pacf(ar3$residuals)
+sqrt(ar3$sigma2) #0.1075157
+
+ar2=arima(tsCO,order=c(2,0,0),method = 'CSS')
+acf(ar2$residuals)
+pacf(ar2$residuals)
+sqrt(ar2$sigma2) #0.1115179
+
+arma11=arima(tsCO,order=c(1,0,1),method = 'CSS')
+acf(arma11$residuals)
+pacf(arma11$residuals)
+sqrt(arma11$sigma2) #0.1115179
+
+ar3x=arima(tsCO,order=c(11,0,0), xreg=monthly.means[1:nrow(train.month),c(3,5)], method='CSS')
+acf(ar3x$residuals)
+pacf(ar3x$residuals, lag.max = 24)
+sqrt(ar3x$sigma2) #0.07518593
+
+ar2x.so2=arima(tsCO,order=c(2,0,0), xreg=monthly.means[1:nrow(train.month),5], method='CSS')
+acf(ar2x.so2$residuals)
+pacf(ar2x.so2$residuals)
+sqrt(ar2x.so2$sigma2) #0.09118078
+
+ar3x.so2=arima(tsCO,order=c(3,0,0), xreg=monthly.means[1:nrow(train.month),5], method='CSS')
+acf(ar3x.so2$residuals)
+pacf(ar3x.so2$residuals)
+sqrt(ar3x.so2$sigma2) #0.09123547
+
+```
+sinusoidal
+```{r}
+ntot <- nrow(train.month)
+monthly.means.sinu=data.frame(CO=train.month$CO,x1=sin(2*pi*(1:ntot)/12),x2=cos(2*pi*(1:ntot)/12))
+fitlm=lm(CO~x1+x2,data=monthly.means.sinu)
+summary(fitlm)
+acf(ts(fitlm$residuals, frequency = 12, start = c(2001,1)))
+pacf(ts(fitlm$residuals, frequency = 12, start = c(2001,1)))
+fitarimax=arima(monthly.means.sinu$CO,order=c(11,1,0),xreg=monthly.means.sinu[,2:3],method='CSS')
+sqrt(fitarimax$sigma2)
+```
+armax separate
+```{r}
+fitlm=lm(CO~NO2+SO2, data=train.month)
+acf(ts(fitlm$residuals, frequency = 12, start = c(2001,1)))
+pacf(ts(fitlm$residuals, frequency = 12, start = c(2001,1)))
+ar2x.so2=arima(tsCO,order=c(11,0,0), xreg=monthly.means[1:nrow(train.month),c(3,5)], method='CSS')
+acf(ar2x.so2$residuals)
+pacf(ar2x.so2$residuals)
+sqrt(ar2x.so2$sigma2) #0.07587833
+```
+sample sd
+```{r}
+sd(train.month$CO)
+```
+
+
