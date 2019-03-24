@@ -8,9 +8,10 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
-load data
-
+#data cleaning
+##load data
+Chose station 28079036
+Decided to not keep data for 2018, since it cuts off after 4 months
 ```{r}
 setwd("C:/2018W2/STAT443/project/Madrid")
 m2001<-read.table("madrid_2001.csv",header=TRUE,sep=",")
@@ -69,28 +70,28 @@ m2018<-m2018[m2018$station=="28079036",]
 
 #plot(ts(m2012$PM10))
 
-yeet<-intersect(names(m2003),names(m2007))
-yeet<-intersect(yeet,names(m2014))
-yeet<-intersect(yeet,names(m2017))
-print(yeet)
-m2001<-m2001[yeet]
-m2002<-m2002[yeet]
-m2003<-m2003[yeet]
-m2004<-m2004[yeet]
-m2005<-m2005[yeet]
-m2006<-m2006[yeet]
-m2007<-m2007[yeet]
-m2008<-m2008[yeet]
-m2009<-m2009[yeet]
-m2010<-m2010[yeet]
-m2011<-m2011[yeet]
-m2012<-m2012[yeet]
-m2013<-m2013[yeet]
-m2014<-m2014[yeet]
-m2015<-m2015[yeet]
-m2016<-m2016[yeet]
-m2017<-m2017[yeet]
-m2018<-m2018[yeet]
+col.names<-intersect(names(m2003),names(m2007))
+col.names<-intersect(col.names,names(m2014))
+col.names<-intersect(col.names,names(m2017))
+print(col.names)
+m2001<-m2001[col.names]
+m2002<-m2002[col.names]
+m2003<-m2003[col.names]
+m2004<-m2004[col.names]
+m2005<-m2005[col.names]
+m2006<-m2006[col.names]
+m2007<-m2007[col.names]
+m2008<-m2008[col.names]
+m2009<-m2009[col.names]
+m2010<-m2010[col.names]
+m2011<-m2011[col.names]
+m2012<-m2012[col.names]
+m2013<-m2013[col.names]
+m2014<-m2014[col.names]
+m2015<-m2015[col.names]
+m2016<-m2016[col.names]
+m2017<-m2017[col.names]
+m2018<-m2018[col.names]
 
 all<-rbind.data.frame(m2001,m2002,m2003,m2004,m2005,m2006,m2007,m2008,m2009,m2010,m2011,m2012,m2013,m2014,m2015,m2016,m2017)
 all<-all[order(all$date, decreasing = FALSE),]
@@ -109,12 +110,13 @@ sum(is.na(all$PM10)) # 846
 sum(is.na(all$SO_2)) # 473
 sum(is.na(all$TCH)) # 148176
 sum(is.na(all$TOL)) # 148176
-yeet<-yeet[c(1,3,6,8,9)] 
-all<-all[,yeet]
+col.names<-col.names[c(1,3,6,8,9)] 
+all<-all[,col.names]
 
 ```
-#calculate missing rate
-Max is 5% (Mar 2016)
+##calculate missing rate
+Max is 5% (Mar 2016) for all of SO2, CO, and NO2 - OK to impute by taking monthly mean
+Missing rate for PM10 is higher, but we later decide to not study it
 ```{r}
 all.impute <- all
 
@@ -150,7 +152,8 @@ max(missing.pm10.count$Month)
 40/(31*24) #mar 2016 co,so2,no2 0.05376344
 216/(31*24) #dec 2016 pm10 0.2903226
 ```
-monthly average
+##monthly average
+impute by monthly mean - same as removing the NA's
 ```{r}
 all.impute <- all
 all.impute <- na.omit(all.impute)
@@ -176,67 +179,59 @@ monthly.means <- monthly.means[, names(monthly.means)[c(1,2,4,6,8)]]
 hold.month<-monthly.means[c(145:nrow(monthly.means)),]
 train.month<-monthly.means[c(1:(nrow(monthly.means)-nrow(hold.month))),]
 ```
-#correlation matrix and time series plot
+#diagnosis
+##correlation matrix and time series plot
+CO is highly correlated with SO2 and NO2
+We will make CO our response and SO2, NO2 candidate explanatory variables
 ```{r}
 tsSO2 <- ts(train.month$SO2, frequency = 12, start = c(2001,1))
-tsPM10 <- ts(train.month$PM10, frequency = 12, start = c(2001,1))
 tsCO <- ts(train.month$CO, frequency = 12, start = c(2001,1))
 tsNO2 <- ts(train.month$NO2, frequency = 12, start = c(2001,1))
 
 cor(monthly.means[c(2,3,4,5)])
 plot(tsSO2)
-plot(tsPM10)
 plot(tsCO)
 plot(tsNO2)
 ```
-$acf and pacf plots
+##acf and pacf plots
+Sine wave acf + Significant first 2 lags in pacf -> fit AR2 model for CO
+Will try neibouring models, but no need to difference
 ```{r}
-max.lag = 12*12
 acf(tsCO)
 pacf(tsCO)
 acf(tsSO2)
 pacf(tsSO2)
 acf(tsNO2)
 pacf(tsNO2)
-acf(tsPM10)
-pacf(tsPM10)
 ```
-$diff
-```{r}
-diff.tsSO2 <- ts(diff(train.month$SO2), frequency = 12, start = c(2001,1))
-diff.tsPM10 <- ts(diff(train.month$PM10), frequency = 12, start = c(2001,1))
-diff.tsCO <- ts(diff(train.month$CO), frequency = 12, start = c(2001,1))
-diff.tsNO2 <- ts(diff(train.month$NO2), frequency = 12, start = c(2001,1))
-
-plot(diff.tsCO)
-
-max.lag = 12*12
-acf(diff.tsCO)
-pacf(diff.tsCO)
-```
-$baseline
+#model fitting
+##baseline
+Persistence and Averaging in/out-of-sample RMSE
 ```{r}
 
 ```
-holt winters and stl
+##trend and season
+holt winters (in and out-of-sample RMSE) and stl
+For HW (additive): plot deseasonalized data to show absence of seasonality
+                    plot detrended data to show absence of trend
+Do same thing for HW multiplicative: not properly fit
+For stl: plot remainder (deseaonalized and detrended) to show the fit is okay (mostly insignificant white noise left)
 ```{r}
 hw.co <- HoltWinters(tsCO,seasonal='additive')
 print(sqrt(hw.co$SSE/(nrow(train.month)-12))) # in sample rmse = 0.09557146
-acf(ts(hw.co$fitted[,1]-hw.co$fitted[,4], start = c(2001,1)))
-
-plot(ts(rowSums(hw.co$fitted[,c(1,2,3)]), start = c(2001,1)))
-plot(ts(hw.co$fitted[,1], frequency = 12, start = c(2001,1)))
+acf(ts(hw.co$fitted[,1]-hw.co$fitted[,4], start = c(2001,1))) # deseasonalized
+acf(ts(hw.co$fitted[,1]-hw.co$fitted[,3], start = c(2001,1))) # detrended
 
 hw.co.mult <- HoltWinters(tsCO,seasonal='multiplicative')
 print(sqrt(hw.co.mult$SSE/(nrow(train.month)-12))) # in sample rmse = 0.08679997
-acf(ts(rowSums(hw.co.mult$fitted[,c(1,2,3)]), start = c(2001,1)), lag.max = 144)
-acf(ts(hw.co.mult$fitted[,1], frequency = 12, start = c(2001,1)))
+acf(ts(hw.co.mult$fitted[,1]-hw.co.mult$fitted[,4], start = c(2001,1))) # deseasonalized
+acf(ts(hw.co.mult$fitted[,1]-hw.co.mult$fitted[,3], start = c(2001,1))) # detrended
 
 stl.co <- stl(tsCO, s.window = 'periodic')
 acf(stl.co$time.series[,3], lag.max = max.lag)
 
 ```
-arima
+##arima
 ```{r}
 fitar1s=arima(tsCO,order=c(2,0,0),seasonal=list(order=c(0,1,0),period=12), method='CSS')
 acf(fitar1s$residuals)
@@ -279,7 +274,7 @@ pacf(ar3x.so2$residuals)
 sqrt(ar3x.so2$sigma2) #0.09123547
 
 ```
-sinusoidal
+##sinusoidal
 ```{r}
 ntot <- nrow(train.month)
 monthly.means.sinu=data.frame(CO=train.month$CO,x1=sin(2*pi*(1:ntot)/12),x2=cos(2*pi*(1:ntot)/12))
@@ -290,7 +285,7 @@ pacf(ts(fitlm$residuals, frequency = 12, start = c(2001,1)))
 fitarimax=arima(monthly.means.sinu$CO,order=c(11,1,0),xreg=monthly.means.sinu[,2:3],method='CSS')
 sqrt(fitarimax$sigma2)
 ```
-armax separate
+##armax separate
 ```{r}
 fitlm=lm(CO~NO2+SO2, data=train.month)
 acf(ts(fitlm$residuals, frequency = 12, start = c(2001,1)))
@@ -300,7 +295,7 @@ acf(ar2x.so2$residuals)
 pacf(ar2x.so2$residuals)
 sqrt(ar2x.so2$sigma2) #0.07587833
 ```
-sample sd
+##sample sd
 ```{r}
 sd(train.month$CO)
 ```
