@@ -208,20 +208,11 @@ diff.tsPM10 <- ts(diff(train.month$PM10), frequency = 12, start = c(2001,1))
 diff.tsCO <- ts(diff(train.month$CO), frequency = 12, start = c(2001,1))
 diff.tsNO2 <- ts(diff(train.month$NO2), frequency = 12, start = c(2001,1))
 
-plot(diff.tsSO2)
-plot(diff.tsPM10)
 plot(diff.tsCO)
-plot(diff.tsNO2)
 
 max.lag = 12*12
-acf(diff.tsCO, lag.max = max.lag)
-pacf(diff.tsCO, lag.max = max.lag)
-acf(diff.tsSO2, lag.max = max.lag)
-pacf(diff.tsSO2, lag.max = max.lag)
-acf(diff.tsNO2, lag.max = max.lag)
-pacf(diff.tsNO2, lag.max = max.lag)
-acf(diff.tsPM10, lag.max = max.lag)
-pacf(diff.tsPM10, lag.max = max.lag)
+acf(diff.tsCO)
+pacf(diff.tsCO)
 ```
 $baseline
 ```{r}
@@ -231,8 +222,7 @@ holt winters and stl
 ```{r}
 hw.co <- HoltWinters(tsCO,seasonal='additive')
 print(sqrt(hw.co$SSE/(nrow(train.month)-12))) # in sample rmse = 0.09557146
-acf(ts(rowSums(hw.co$fitted[,c(1,2,3)]), start = c(2001,1)))
-acf(ts(hw.co$fitted[,1], frequency = 12, start = c(2001,1)))
+acf(ts(hw.co$fitted[,1]-hw.co$fitted[,4], start = c(2001,1)))
 
 plot(ts(rowSums(hw.co$fitted[,c(1,2,3)]), start = c(2001,1)))
 plot(ts(hw.co$fitted[,1], frequency = 12, start = c(2001,1)))
@@ -244,7 +234,6 @@ acf(ts(hw.co.mult$fitted[,1], frequency = 12, start = c(2001,1)))
 
 stl.co <- stl(tsCO, s.window = 'periodic')
 acf(stl.co$time.series[,3], lag.max = max.lag)
-stl.co$weights
 
 ```
 arima
