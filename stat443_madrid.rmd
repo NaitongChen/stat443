@@ -299,5 +299,8 @@ sqrt(ar2x.so2$sigma2) #0.07587833
 ```{r}
 sd(train.month$CO)
 ```
+#forecasting Jan 2018
+```{r}
 
+```
 
