@@ -182,8 +182,6 @@ for (i in 1:nh){
 rmse=sqrt(sse/nh)
 rmse #0.07014425
 fcvec 
-#  [1] 0.5352176 0.5337269 0.3581039 0.3327191 0.2764227 0.2448834 0.2218039 0.2335841
-#  [9] 0.2345082 0.3388380 0.3136599 0.5262981 0.4419573
 ```
 ### AR3
 ```{r}
@@ -267,8 +265,28 @@ rmse # 0.1220484
 fcvec 
 ```
 
-### ARMA(2,0,0)(0,1,1)12 seasonal difference
+### ARMA(2,0,0)(0,1,0)12 seasonal difference
 ```{r}
- 
+arima.season=arima(ts(train.month[,2]),order=c(2,0,0),seasonal=list(order=c(0,1,0),period=12))
+sqrt(arima.season$sigma2) # 0.09475901
+# out
+phivec<-arima.season$coef[c(1,2)]
+s<-12
+y<-c(train.month[c((nrow(train.month)-13):nrow(train.month)),2],hold.month[,2])
+length(y) # p+s+nh =2+12+12=26
+rm(fcvec)
+fcvec<-vector()
+sse<-0
+for (i in 1:nh){
+  u<-c(y[i+13],y[1+12])-c(y[i+1],y[i])
+  fc<- y[i+2]+ phivec %*%u
+  fcvec[i]<-fc
+  zt<-hold.month[i,2]
+  fcerror<-zt-fc
+  sse<-sse+fcerror^2
+}
+rmse=sqrt(sse/nh)
+rmse #0.05346595
+fcvec
 ```
 
