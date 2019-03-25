@@ -269,6 +269,6 @@ fcvec
 
 ### ARMA(2,0,0)(0,1,1)12 seasonal difference
 ```{r}
-
+ 
 ```
 
